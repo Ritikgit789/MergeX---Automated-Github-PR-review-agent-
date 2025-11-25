@@ -1,0 +1,23 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# LangChain and LangGraph
+langgraph
+langchain
+langchain-google-genai
+
+# GitHub Integration
+PyGithub
+requests
+
+# Utilities
+python-dotenv
+python-multipart
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+httpx
