@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
     
     # Gemini Model Configuration
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.0-flash"
     gemini_temperature: float = 0.3
     gemini_max_tokens: int = 2048
     
