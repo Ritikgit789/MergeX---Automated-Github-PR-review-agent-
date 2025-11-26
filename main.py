@@ -2,8 +2,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.config import settings
-from app.routers import health_router, review_router
+from app.config.settings import settings
+from app.routers.health import router as health_router
+from app.routers.review import router as review_router
 import logging
 
 # Configure logging
