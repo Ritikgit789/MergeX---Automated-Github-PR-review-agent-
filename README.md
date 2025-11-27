@@ -63,13 +63,13 @@ An intelligent multi-agent system that analyzes GitHub Pull Requests and generat
 python app/main.py
 
 # Or using Uvicorn directly
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Production Mode
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 The API will be available at:
