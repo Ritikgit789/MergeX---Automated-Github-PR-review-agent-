@@ -1,9 +1,20 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Github } from "lucide-react";
 
 export function Layout({ children }) {
     return (
-        <div className="min-h-screen text-text flex flex-col items-center justify-start py-10 sm:py-14 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="min-h-screen text-text flex flex-col items-center justify-center py-10 sm:py-14 px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="absolute top-6 left-6 sm:top-8 sm:left-8">
+                <a
+                    href="https://github.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted hover:text-text transition-colors duration-300"
+                >
+                    <Github className="w-6 h-6 sm:w-8 sm:h-8" />
+                </a>
+            </div>
+
             <div className="w-full max-w-5xl mx-auto flex flex-col items-center">
 
                 {/* HERO HEADER */}
