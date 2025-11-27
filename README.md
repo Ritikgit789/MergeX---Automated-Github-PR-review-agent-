@@ -1,81 +1,244 @@
-# Automated GitHub PR Review Agent
+# MergeX - Automated GitHub PR Review Agent
 
-An intelligent multi-agent system that analyzes GitHub Pull Requests and generates structured, actionable code review comments using Google Gemini and LangGraph orchestration.
+> **AI-Powered Code Review Assistant** | Intelligent multi-agent system that analyzes GitHub Pull Requests and generates structured, actionable code review comments using Google Gemini and LangGraph orchestration.
 
-## 🚀 Features
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.2+-61dafb.svg)](https://react.dev)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776ab.svg)](https://www.python.org)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Latest-ff4b4b.svg)](https://langchain-ai.github.io/langgraph/)
 
-- **Multi-Agent Architecture**: Specialized agents for different review aspects
-  - Logic Reviewer: Identifies bugs, edge cases, and algorithmic issues
-  - Security Reviewer: Detects vulnerabilities and security risks
-  - Performance Reviewer: Finds optimization opportunities
-  - Readability Reviewer: Ensures code quality and maintainability
+---
 
-- **LangGraph Orchestration**: Parallel agent execution with intelligent workflow management
-- **Dual Input Support**: Review GitHub PRs via URL or manual diff input
-- **Industry-Standard API**: RESTful FastAPI endpoints with comprehensive documentation
-- **Structured Output**: Categorized comments with severity levels and actionable suggestions
+## 🌟 Overview
+
+**MergeX** is a full-stack application that revolutionizes code review by leveraging AI-powered multi-agent architecture. It provides comprehensive PR analysis through specialized review agents, delivering actionable insights across logic, security, performance, and readability dimensions.
+
+### ✨ Key Features
+
+- 🤖 **Multi-Agent AI Architecture**: Specialized agents for different review aspects
+  - **Logic Reviewer**: Identifies bugs, edge cases, and algorithmic issues
+  - **Security Reviewer**: Detects vulnerabilities and security risks
+  - **Performance Reviewer**: Finds optimization opportunities
+  - **Readability Reviewer**: Ensures code quality and maintainability
+
+- 🔄 **LangGraph Orchestration**: Parallel agent execution with intelligent workflow management
+- 🎯 **Dual Input Support**: Review GitHub PRs via URL or manual diff input
+- 🎨 **Modern React Frontend**: Beautiful, responsive UI with glassmorphism design
+- 🚀 **Production-Ready API**: RESTful FastAPI endpoints with comprehensive documentation
+- 📊 **Structured Output**: Categorized comments with severity levels and actionable suggestions
+- ☁️ **Cloud Deployment**: Configured for Render.com with `.render.yaml`
+
+---
+
+## 📂 Project Structure
+
+```
+MergeX/
+├── app/                           # Backend FastAPI Application
+│   ├── agents/                    # Specialized review agents
+│   │   ├── __init__.py
+│   │   ├── github_fetcher.py      # Fetches PR data from GitHub
+│   │   ├── code_parser.py         # Parses code diffs
+│   │   ├── logic_reviewer.py      # Logic & bug detection
+│   │   ├── security_reviewer.py   # Security vulnerability detection
+│   │   ├── performance_reviewer.py # Performance optimization
+│   │   └── readability_reviewer.py # Code quality & style
+│   ├── orchestration/             # LangGraph workflow
+│   │   ├── __init__.py
+│   │   └── workflow.py            # Multi-agent orchestration
+│   ├── routers/                   # API endpoints
+│   │   ├── __init__.py
+│   │   ├── health.py              # Health check endpoint
+│   │   └── review.py              # Review endpoints
+│   ├── services/                  # Business logic
+│   │   ├── __init__.py
+│   │   ├── github_service.py      # GitHub API integration
+│   │   └── review_service.py      # Review orchestration
+│   ├── models/                    # Data models
+│   │   ├── __init__.py
+│   │   └── schemas.py             # Pydantic schemas
+│   ├── config/                    # Configuration
+│   │   ├── __init__.py
+│   │   └── settings.py            # App settings
+│   └── __init__.py
+│
+├── frontend/                      # React Frontend Application
+│   ├── src/
+│   │   ├── components/            # React components
+│   │   │   ├── Layout.jsx         # Main layout with gradient background
+│   │   │   ├── PRInput.jsx        # PR URL/diff input component
+│   │   │   └── ReviewResult.jsx   # Review results display
+│   │   ├── App.jsx                # Main App component
+│   │   ├── App.css                # App-specific styles
+│   │   ├── index.css              # Global styles & Tailwind
+│   │   └── main.jsx               # React entry point
+│   ├── public/                    # Static assets
+│   ├── dist/                      # Production build output
+│   ├── index.html                 # HTML template
+│   ├── package.json               # Node dependencies
+│   ├── vite.config.js             # Vite configuration
+│   ├── tailwind.config.js         # Tailwind CSS config
+│   ├── postcss.config.js          # PostCSS config
+│   ├── eslint.config.js           # ESLint configuration
+│   └── README.md                  # Frontend documentation
+│
+├── tests/                         # Test suite
+│   ├── __init__.py
+│   ├── test_agents.py             # Agent tests
+│   └── test_api.py                # API endpoint tests
+│
+├── main.py                        # FastAPI application entry point
+├── requirements.txt               # Python dependencies
+├── .env                          # Environment variables (not in git)
+├── .gitignore                    # Git ignore rules
+├── .render.yaml                  # Render.com deployment config
+└── README.md                     # This file
+```
+
+---
+
+## 🛠️ Technology Stack
+
+### Backend
+- **FastAPI** - Modern, fast web framework for building APIs
+- **LangGraph** - Multi-agent workflow orchestration
+- **LangChain** - LLM application framework
+- **Google Gemini** - AI model for code analysis
+- **PyGithub** - GitHub API integration
+- **Pydantic** - Data validation and settings management
+- **Uvicorn** - ASGI server
+
+### Frontend
+- **React 18.2** - UI library
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **Framer Motion** - Animation library
+- **Axios** - HTTP client
+- **Lucide React** - Icon library
+
+### Testing
+- **Pytest** - Testing framework
+- **pytest-asyncio** - Async test support
+- **pytest-cov** - Coverage reporting
+- **httpx** - HTTP client for testing
+
+---
 
 ## 📋 Prerequisites
 
-- Python 3.9+
-- Google API Key (for Gemini)
-- GitHub Token (optional, for fetching PRs)
+- **Python 3.9+**
+- **Node.js 18+** and **npm**
+- **Google API Key** (for Gemini)
+- **GitHub Token** (optional, for fetching PRs)
 
-## 🛠️ Installation
+---
 
-1. **Clone or navigate to the project directory**:
-   ```bash
-   cd pr-review-agent
-   ```
+## 🚀 Installation & Setup
 
-2. **Create virtual environment**:
-   ```bash
-   python -m venv venv
-   
-   # Windows
-   venv\Scripts\activate
-   
-   # Linux/Mac
-   source venv/bin/activate
-   ```
+### 1. Clone the Repository
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+git clone <repository-url>
+cd MergeX
+```
 
-4. **Configure environment variables**:
-   ```bash
-   # Copy example env file
-   cp .env.example .env
-   
-   # Edit .env and add your API keys
-   # Required: GOOGLE_API_KEY
-   # Optional: GITHUB_TOKEN
-   ```
+### 2. Backend Setup
 
-## 🚦 Running the Application
+#### Create Virtual Environment
+
+```bash
+# Windows
+python -m venv pragentenv
+pragentenv\Scripts\activate
+
+# Linux/Mac
+python3 -m venv pragentenv
+source pragentenv/bin/activate
+```
+
+#### Install Python Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+#### Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+# Required
+GOOGLE_API_KEY=your_google_api_key_here
+
+# Optional
+GITHUB_TOKEN=your_github_token_here
+
+# Model Settings
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_TEMPERATURE=0.3
+GEMINI_MAX_TOKENS=2048
+
+# API Settings
+API_HOST=0.0.0.0
+API_PORT=8000
+LOG_LEVEL=INFO
+ENVIRONMENT=development
+```
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install
+```
+
+---
+
+## 🏃 Running the Application
 
 ### Development Mode
 
+#### Start Backend Server
+
 ```bash
-# Using Python
-python app/main.py
+# From root directory
+python main.py
 
 # Or using Uvicorn directly
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+The backend API will be available at:
+- **API**: http://localhost:8000
+- **Interactive Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+#### Start Frontend Dev Server
+
+```bash
+# From frontend directory
+cd frontend
+npm run dev
+```
+
+The frontend will be available at: http://localhost:5173
+
 ### Production Mode
+
+#### Build Frontend
+
+```bash
+cd frontend
+npm run build
+```
+
+#### Run Backend in Production
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-The API will be available at:
-- **API**: http://localhost:8000
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+---
 
 ## 📡 API Endpoints
 
@@ -83,6 +246,15 @@ The API will be available at:
 
 ```bash
 GET /health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "version": "1.0.0"
+}
 ```
 
 ### Review GitHub PR
@@ -115,11 +287,27 @@ Content-Type: application/json
 GET /api/v1/review/categories
 ```
 
+**Response:**
+```json
+{
+  "categories": ["logic", "security", "performance", "readability"]
+}
+```
+
 ### Get Severity Levels
 
 ```bash
 GET /api/v1/review/severities
 ```
+
+**Response:**
+```json
+{
+  "severities": ["critical", "error", "warning", "info"]
+}
+```
+
+---
 
 ## 📝 Example Usage
 
@@ -159,42 +347,58 @@ for comment in result['comments']:
         print(f"Suggestion: {comment['suggestion']}")
 ```
 
+### Using the Frontend
+
+1. Navigate to http://localhost:5173
+2. Choose input method:
+   - **GitHub PR URL**: Paste a GitHub PR URL
+   - **Manual Diff**: Paste a git diff
+3. Click "Review Code"
+4. View categorized results with severity levels
+
+---
+
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    FastAPI Application                   │
-│                  (app/main.py - 0.0.0.0)                │
-└────────────────────┬────────────────────────────────────┘
-                     │
-        ┌────────────┴────────────┐
-        │                         │
-   ┌────▼─────┐           ┌──────▼──────┐
-   │  Health  │           │   Review    │
-   │  Router  │           │   Router    │
-   └──────────┘           └──────┬──────┘
-                                 │
-                         ┌───────▼────────┐
-                         │ Review Service │
-                         └───────┬────────┘
-                                 │
-                    ┌────────────▼─────────────┐
-                    │   LangGraph Workflow     │
-                    │  (Parallel Execution)    │
-                    └────────────┬─────────────┘
-                                 │
-        ┌────────────────────────┼────────────────────────┐
-        │            │           │           │            │
-   ┌────▼───┐  ┌────▼────┐ ┌────▼────┐ ┌───▼─────┐ ┌────▼────┐
-   │ GitHub │  │  Code   │ │ Logic   │ │Security │ │Perf/Read│
-   │Fetcher │  │ Parser  │ │Reviewer │ │Reviewer │ │Reviewers│
-   └────────┘  └─────────┘ └─────────┘ └─────────┘ └─────────┘
-                                 │
-                         ┌───────▼────────┐
-                         │   Aggregator   │
-                         │ (Deduplicate)  │
-                         └────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    React Frontend (Vite)                     │
+│         Glassmorphism UI + Tailwind CSS + Framer Motion     │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP/REST
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                  FastAPI Application (main.py)               │
+│                    CORS + Error Handling                     │
+└────────────────────┬───────────────────┬────────────────────┘
+                     │                   │
+        ┌────────────▼─────┐    ┌───────▼────────┐
+        │  Health Router   │    │  Review Router │
+        └──────────────────┘    └───────┬────────┘
+                                        │
+                               ┌────────▼─────────┐
+                               │ Review Service   │
+                               └────────┬─────────┘
+                                        │
+                          ┌─────────────▼──────────────┐
+                          │   LangGraph Workflow       │
+                          │  (Parallel Execution)      │
+                          └─────────────┬──────────────┘
+                                        │
+        ┌───────────┬──────────┬────────┼────────┬──────────┐
+        │           │          │        │        │          │
+   ┌────▼────┐ ┌───▼────┐ ┌───▼───┐ ┌──▼───┐ ┌──▼───┐ ┌───▼────┐
+   │ GitHub  │ │  Code  │ │ Logic │ │Security│ │Perf │ │ Read   │
+   │ Fetcher │ │ Parser │ │Review │ │Review  │ │Review│ │Review  │
+   └─────────┘ └────────┘ └───────┘ └────────┘ └──────┘ └────────┘
+                                        │
+                               ┌────────▼─────────┐
+                               │   Aggregator     │
+                               │  (Deduplicate)   │
+                               └──────────────────┘
 ```
+
+---
 
 ## 🧪 Testing
 
@@ -207,79 +411,65 @@ pytest --cov=app tests/
 
 # Run specific test file
 pytest tests/test_api.py -v
+
+# Run with verbose output
+pytest -v
 ```
 
-## 📂 Project Structure
-
-```
-pr-review-agent/
-├── app/
-│   ├── agents/              # Specialized review agents
-│   │   ├── github_fetcher.py
-│   │   ├── code_parser.py
-│   │   ├── logic_reviewer.py
-│   │   ├── security_reviewer.py
-│   │   ├── performance_reviewer.py
-│   │   └── readability_reviewer.py
-│   ├── orchestration/       # LangGraph workflow
-│   │   └── workflow.py
-│   ├── routers/            # API endpoints
-│   │   ├── health.py
-│   │   └── review.py
-│   ├── services/           # Business logic
-│   │   ├── github_service.py
-│   │   └── review_service.py
-│   ├── models/             # Pydantic schemas
-│   │   └── schemas.py
-│   ├── config/             # Configuration
-│   │   └── settings.py
-│   └── main.py             # FastAPI app
-├── tests/                  # Test suite
-├── requirements.txt
-├── .env.example
-└── README.md
-```
-
-## 🔧 Configuration
-
-Edit `.env` file:
-
-```env
-# Required
-GOOGLE_API_KEY=your_google_api_key_here
-
-# Optional
-GITHUB_TOKEN=your_github_token_here
-
-# Model Settings
-GEMINI_MODEL=gemini-1.5-flash
-GEMINI_TEMPERATURE=0.3
-GEMINI_MAX_TOKENS=2048
-
-# API Settings
-API_HOST=0.0.0.0
-API_PORT=8000
-```
+---
 
 ## 🎯 Review Categories
 
-- **Logic**: Bugs, edge cases, null pointers, incorrect algorithms
-- **Security**: SQL injection, XSS, hardcoded secrets, auth issues
-- **Performance**: N+1 queries, inefficient loops, memory leaks
-- **Readability**: Naming, documentation, complexity, style
+| Category | Description | Examples |
+|----------|-------------|----------|
+| **Logic** | Bugs, edge cases, algorithmic issues | Null pointers, off-by-one errors, incorrect conditions |
+| **Security** | Vulnerabilities and security risks | SQL injection, XSS, hardcoded secrets, auth issues |
+| **Performance** | Optimization opportunities | N+1 queries, inefficient loops, memory leaks |
+| **Readability** | Code quality and maintainability | Naming conventions, documentation, complexity |
+
+---
 
 ## 📊 Severity Levels
 
-- **Critical**: Must fix immediately
-- **Error**: Should fix before merging
-- **Warning**: Should review
-- **Info**: Suggestions for improvement
+| Level | Description | Action Required |
+|-------|-------------|-----------------|
+| 🔴 **Critical** | Must fix immediately | Blocks merge |
+| 🟠 **Error** | Should fix before merging | High priority |
+| 🟡 **Warning** | Should review | Medium priority |
+| 🔵 **Info** | Suggestions for improvement | Low priority |
 
-## 🚀 Deployment
+---
+
+## ☁️ Deployment
+
+### Render.com (Configured)
+
+The project includes `.render.yaml` for easy deployment to Render.com:
+
+```yaml
+services:
+  - type: web
+    name: pr-review-agent
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+```
+
+**Steps:**
+1. Push code to GitHub
+2. Connect repository to Render.com
+3. Add environment variables in Render dashboard
+4. Deploy automatically
 
 ### Docker (Optional)
 
 ```dockerfile
+# Backend Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -287,34 +477,135 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
-EXPOSE 8000
+COPY main.py .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+```dockerfile
+# Frontend Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm install
+
+COPY frontend/ .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=0 /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
 ```
 
 ### Environment Variables for Production
 
-- Set `ENVIRONMENT=production`
-- Configure CORS origins appropriately
-- Use proper secret management for API keys
-- Enable HTTPS/TLS
+```env
+ENVIRONMENT=production
+GOOGLE_API_KEY=<your-key>
+GITHUB_TOKEN=<your-token>
+API_HOST=0.0.0.0
+API_PORT=8000
+LOG_LEVEL=INFO
+```
 
-## 📄 License
-
-MIT License
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📞 Support
-
-For issues or questions, please open an issue on GitHub.
+**Security Checklist:**
+- ✅ Configure CORS origins appropriately
+- ✅ Use proper secret management for API keys
+- ✅ Enable HTTPS/TLS
+- ✅ Set up rate limiting
+- ✅ Enable logging and monitoring
 
 ---
 
-Built with ❤️ using FastAPI, LangGraph, and Google Gemini
+## 🎨 Frontend Features
+
+- **Glassmorphism Design**: Modern, premium UI with frosted glass effects
+- **Animated Gradient Background**: Dynamic mesh gradient animation
+- **Responsive Layout**: Works on all screen sizes
+- **Real-time Feedback**: Loading states and error handling
+- **Syntax Highlighting**: Code diffs with proper formatting
+- **Categorized Results**: Organized by severity and category
+- **Smooth Animations**: Framer Motion for fluid transitions
+
+---
+
+## 🔧 Configuration
+
+### Backend Configuration (`app/config/settings.py`)
+
+```python
+class Settings(BaseSettings):
+    app_name: str = "PR Review Agent"
+    app_version: str = "1.0.0"
+    environment: str = "development"
+    
+    google_api_key: str
+    github_token: Optional[str] = None
+    
+    gemini_model: str = "gemini-1.5-flash"
+    gemini_temperature: float = 0.3
+    gemini_max_tokens: int = 2048
+    
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    log_level: str = "INFO"
+```
+
+### Frontend Configuration
+
+- **Vite Config**: `frontend/vite.config.js`
+- **Tailwind Config**: `frontend/tailwind.config.js`
+- **ESLint Config**: `frontend/eslint.config.js`
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass (`pytest`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+---
+
+## 📞 Support
+
+For issues, questions, or feature requests:
+- 🐛 **Bug Reports**: Open an issue on GitHub
+- 💡 **Feature Requests**: Open an issue with the `enhancement` label
+- 📧 **Contact**: [Your contact information]
+
+---
+
+## 🙏 Acknowledgments
+
+- **FastAPI** - For the amazing web framework
+- **LangChain & LangGraph** - For multi-agent orchestration
+- **Google Gemini** - For powerful AI capabilities
+- **React & Vite** - For modern frontend development
+- **Tailwind CSS** - For beautiful, utility-first styling
+
+---
+
+<div align="center">
+
+**Built with ❤️ using FastAPI, React, LangGraph, and Google Gemini**
+
+⭐ Star this repo if you find it helpful!
+
+</div>
