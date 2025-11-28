@@ -361,7 +361,7 @@ for comment in result['comments']:
 ### 🔥 API Warm Start (UptimeRobot Integration)
 
 To avoid cold-start latency on Render’s free tier, we integrated **UptimeRobot** to ping the `/health` endpoint every 1 minute. 
-This keeps the FastAPI backend warm and significantly reduces initial API response time from ~45 seconds to ~3–5 seconds. 
+This keeps the FastAPI backend warm and significantly reduces initial API response time from ~45 seconds to ~13–15 seconds. 
 This helps improve user experience and ensures faster PR review processing.
 
 
