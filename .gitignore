@@ -15,7 +15,7 @@ eggs/
 lib/
 lib64/
 parts/
-
+*.png
 var/
 wheels/
 *.egg-info/
