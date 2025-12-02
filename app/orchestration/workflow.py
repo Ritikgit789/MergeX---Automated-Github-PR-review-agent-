@@ -20,6 +20,22 @@ def should_fetch_github(state: AgentState) -> str:
     return "parse_code"
 
 
+def should_continue_after_fetch(state: AgentState) -> str:
+    """Check if we should continue after GitHub fetch or stop due to error."""
+    # Handle both dict and object access
+    if isinstance(state, dict):
+        error = state.get("error")
+        diff_content = state.get("diff_content")
+    else:
+        error = getattr(state, "error", None)
+        diff_content = getattr(state, "diff_content", None)
+    
+    # If there's an error or no diff content, stop the workflow
+    if error or not diff_content:
+        return "end"
+    return "parse_code"
+
+
 def aggregate_results(state: Any) -> dict:
     """Aggregate all review comments from different agents."""
     all_comments = []
@@ -91,8 +107,15 @@ def create_review_workflow() -> StateGraph:
         }
     )
     
-    # GitHub fetch -> parse code
-    workflow.add_edge("fetch_github", "parse_code")
+    # GitHub fetch -> conditional check -> parse code or end
+    workflow.add_conditional_edges(
+        "fetch_github",
+        should_continue_after_fetch,
+        {
+            "parse_code": "parse_code",
+            "end": END
+        }
+    )
     
     # Parse code -> all reviewers (parallel execution)
     workflow.add_edge("parse_code", "review_logic")
@@ -115,9 +138,6 @@ def create_review_workflow() -> StateGraph:
 # Create compiled workflow
 review_workflow = create_review_workflow()
 
-
-# Create compiled workflow
-review_workflow = create_review_workflow()
 
 if __name__ == "__main__":
     from pathlib import Path

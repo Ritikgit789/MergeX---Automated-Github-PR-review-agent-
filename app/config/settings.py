@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     gemini_temperature: float = 0.3
     gemini_max_tokens: int = 2048
     
+    # Timeout Configuration (in seconds)
+    github_api_timeout: int = 30
+    llm_api_timeout: int = 60
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
