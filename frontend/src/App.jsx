@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Layout } from './components/Layout';
 import { PRInput } from './components/PRInput';
 import { ReviewResult } from './components/ReviewResult';
+import { Sidebar } from './components/Sidebar';
 import { AlertCircle } from 'lucide-react';
 
 // API Base URL - deployed backend on Render
@@ -12,6 +13,7 @@ function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [githubToken, setGithubToken] = useState('');
 
     const handleReview = async (url) => {
         setIsLoading(true);
@@ -19,9 +21,17 @@ function App() {
         setResult(null);
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/review/github`, {
+            // Build request payload
+            const payload = {
                 pr_url: url
-            });
+            };
+            
+            // Add token only if provided (for private repos)
+            if (githubToken && githubToken.trim()) {
+                payload.github_token = githubToken.trim();
+            }
+
+            const response = await axios.post(`${API_BASE_URL}/review/github`, payload);
             setResult(response.data);
         } catch (err) {
             console.error('Review failed:', err);
@@ -37,6 +47,9 @@ function App() {
 
     return (
         <Layout>
+            {/* Sidebar for token input */}
+            <Sidebar token={githubToken} onTokenChange={setGithubToken} />
+
             <div className="w-full flex flex-col items-center gap-12">
 
                 {/* PR Input */}
