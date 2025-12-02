@@ -21,9 +21,19 @@
   - **Performance Reviewer**: Finds optimization opportunities
   - **Readability Reviewer**: Ensures code quality and maintainability
 
+- 🔒 **Private Repository Support**: Securely review private repositories using Personal Access Tokens (PAT).
+  - **Secure Token Management**: Tokens are handled in-memory only, never stored or logged, and cleared immediately after use.
+  - **Sidebar Settings**: Dedicated sidebar for managing session-based tokens.
+
+- 💬 **Intelligent Interaction**:
+  - **Smart Input Validation**: Distinguishes between greetings, irrelevant queries, and valid PR URLs.
+  - **Friendly Assistant**: Responds to greetings and guides users on how to use the tool.
+
 - 🔄 **LangGraph Orchestration**: Parallel agent execution with intelligent workflow management
 - 🎯 **Dual Input Support**: Review GitHub PRs via URL or manual diff input
 - 🎨 **Modern React Frontend**: Beautiful, responsive UI with glassmorphism design
+  - **About Section**: Comprehensive help and information guide built-in.
+  - **Animated UI**: Smooth transitions and engaging visual feedback.
 - 🚀 **Production-Ready API**: RESTful FastAPI endpoints with comprehensive documentation
 - 📊 **Structured Output**: Categorized comments with severity levels and actionable suggestions
 - ☁️ **Cloud Deployment**: Configured for Render.com with `.render.yaml`
@@ -37,7 +47,7 @@ MergeX/
 ├── app/                           # Backend FastAPI Application
 │   ├── agents/                    # Specialized review agents
 │   │   ├── __init__.py
-│   │   ├── github_fetcher.py      # Fetches PR data from GitHub
+│   │   ├── github_fetcher.py      # Fetches PR data from GitHub (Private/Public)
 │   │   ├── code_parser.py         # Parses code diffs
 │   │   ├── logic_reviewer.py      # Logic & bug detection
 │   │   ├── security_reviewer.py   # Security vulnerability detection
@@ -54,6 +64,10 @@ MergeX/
 │   │   ├── __init__.py
 │   │   ├── github_service.py      # GitHub API integration
 │   │   └── review_service.py      # Review orchestration
+│   ├── utils/                     # Utility modules
+│   │   ├── __init__.py
+│   │   └── input_validator.py     # Input validation & greeting handling
+│   │   └── language_detector.py   # Language detection
 │   ├── models/                    # Data models
 │   │   ├── __init__.py
 │   │   └── schemas.py             # Pydantic schemas
@@ -67,7 +81,9 @@ MergeX/
 │   │   ├── components/            # React components
 │   │   │   ├── Layout.jsx         # Main layout with gradient background
 │   │   │   ├── PRInput.jsx        # PR URL/diff input component
-│   │   │   └── ReviewResult.jsx   # Review results display
+│   │   │   ├── ReviewResult.jsx   # Review results display
+│   │   │   ├── Sidebar.jsx        # Settings sidebar for Token management
+│   │   │   └── About.jsx          # About & Help modal
 │   │   ├── App.jsx                # Main App component
 │   │   ├── App.css                # App-specific styles
 │   │   ├── index.css              # Global styles & Tailwind
@@ -264,7 +280,8 @@ POST /api/v1/review/github
 Content-Type: application/json
 
 {
-  "pr_url": "https://github.com/owner/repo/pull/123"
+  "pr_url": "https://github.com/owner/repo/pull/123",
+  "github_token": "optional_token_for_private_repos"
 }
 ```
 
@@ -331,7 +348,10 @@ import requests
 # Review GitHub PR
 response = requests.post(
     "http://localhost:8000/api/v1/review/github",
-    json={"pr_url": "https://github.com/owner/repo/pull/123"}
+    json={
+        "pr_url": "https://github.com/owner/repo/pull/123",
+        "github_token": "your_token_if_private" 
+    }
 )
 
 result = response.json()
@@ -350,180 +370,26 @@ for comment in result['comments']:
 ### Using the Frontend
 
 1. Navigate to http://localhost:5173
-2. Choose input method:
-   - **GitHub PR URL**: Paste a GitHub PR URL
-   - **Manual Diff**: Paste a git diff
-3. Click "Review Code"
-4. View categorized results with severity levels
+2. **For Public Repos**:
+   - Paste a GitHub PR URL directly.
+   - Click "Review Code".
+3. **For Private Repos**:
+   - Click the **Settings** icon (Sidebar) in the top right.
+   - Enter your GitHub Personal Access Token (PAT).
+   - Close the sidebar and paste your PR URL.
+   - Click "Review Code".
+4. View categorized results with severity levels.
 
 ---
 
-### 🔥 API Warm Start (UptimeRobot Integration)
+## 🔒 Security & Privacy
 
-To avoid cold-start latency on Render’s free tier, we integrated **UptimeRobot** to ping the `/health` endpoint every 1 minute. 
-This keeps the FastAPI backend warm and significantly reduces initial API response time from ~45 seconds to ~13–15 seconds. 
-This helps improve user experience and ensures faster PR review processing.
+MergeX is designed with security in mind, especially when handling private repositories:
 
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    React Frontend (Vite)                     │
-│         Glassmorphism UI + Tailwind CSS + Framer Motion     │
-└────────────────────────┬────────────────────────────────────┘
-                         │ HTTP/REST
-                         │
-┌────────────────────────▼────────────────────────────────────┐
-│                  FastAPI Application (main.py)               │
-│                    CORS + Error Handling                     │
-└────────────────────┬───────────────────┬────────────────────┘
-                     │                   │
-        ┌────────────▼─────┐    ┌───────▼────────┐
-        │  Health Router   │    │  Review Router │
-        └──────────────────┘    └───────┬────────┘
-                                        │
-                               ┌────────▼─────────┐
-                               │ Review Service   │
-                               └────────┬─────────┘
-                                        │
-                          ┌─────────────▼──────────────┐
-                          │   LangGraph Workflow       │
-                          │  (Parallel Execution)      │
-                          └─────────────┬──────────────┘
-                                        │
-        ┌───────────┬──────────┬────────┼────────┬──────────┐
-        │           │          │        │        │          │
-   ┌────▼────┐ ┌───▼────┐ ┌───▼───┐ ┌──▼───┐ ┌──▼───┐ ┌───▼────┐
-   │ GitHub  │ │  Code  │ │ Logic │ │Security│ │Perf │ │ Read   │
-   │ Fetcher │ │ Parser │ │Review │ │Review  │ │Review│ │Review  │
-   └─────────┘ └────────┘ └───────┘ └────────┘ └──────┘ └────────┘
-                                        │
-                               ┌────────▼─────────┐
-                               │   Aggregator     │
-                               │  (Deduplicate)   │
-                               └──────────────────┘
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app tests/
-
-# Run specific test file
-pytest tests/test_api.py -v
-
-# Run with verbose output
-pytest -v
-```
-
----
-
-## 🎯 Review Categories
-
-| Category | Description | Examples |
-|----------|-------------|----------|
-| **Logic** | Bugs, edge cases, algorithmic issues | Null pointers, off-by-one errors, incorrect conditions |
-| **Security** | Vulnerabilities and security risks | SQL injection, XSS, hardcoded secrets, auth issues |
-| **Performance** | Optimization opportunities | N+1 queries, inefficient loops, memory leaks |
-| **Readability** | Code quality and maintainability | Naming conventions, documentation, complexity |
-
----
-
-## 📊 Severity Levels
-
-| Level | Description | Action Required |
-|-------|-------------|-----------------|
-| 🔴 **Critical** | Must fix immediately | Blocks merge |
-| 🟠 **Error** | Should fix before merging | High priority |
-| 🟡 **Warning** | Should review | Medium priority |
-| 🔵 **Info** | Suggestions for improvement | Low priority |
-
----
-
-## ☁️ Deployment
-
-### Render.com (Configured)
-
-The project includes `.render.yaml` for easy deployment to Render.com:
-
-```yaml
-services:
-  - type: web
-    name: pr-review-agent
-    runtime: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
-    envVars:
-      - key: GOOGLE_API_KEY
-        sync: false
-      - key: GITHUB_TOKEN
-        sync: false
-```
-
-**Steps:**
-1. Push code to GitHub
-2. Connect repository to Render.com
-3. Add environment variables in Render dashboard
-4. Deploy automatically
-
-### Docker (Optional)
-
-```dockerfile
-# Backend Dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY app/ ./app/
-COPY main.py .
-
-EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-```dockerfile
-# Frontend Dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm install
-
-COPY frontend/ .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=0 /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### Environment Variables for Production
-
-```env
-ENVIRONMENT=production
-GOOGLE_API_KEY=<your-key>
-GITHUB_TOKEN=<your-token>
-API_HOST=0.0.0.0
-API_PORT=8000
-LOG_LEVEL=INFO
-```
-
-**Security Checklist:**
-- ✅ Configure CORS origins appropriately
-- ✅ Use proper secret management for API keys
-- ✅ Enable HTTPS/TLS
-- ✅ Set up rate limiting
-- ✅ Enable logging and monitoring
+- **Ephemeral Token Usage**: GitHub tokens provided via the frontend are **never stored** in any database or file.
+- **In-Memory Only**: Tokens are held in memory only for the duration of the API request and are immediately cleared from the backend state after fetching the PR data.
+- **No Logging**: Tokens are masked in all server logs.
+- **Client-Side Safety**: The frontend does not persist tokens in local storage or cookies; they must be re-entered if the page is reloaded (by design, for security).
 
 ---
 
@@ -536,6 +402,8 @@ LOG_LEVEL=INFO
 - **Syntax Highlighting**: Code diffs with proper formatting
 - **Categorized Results**: Organized by severity and category
 - **Smooth Animations**: Framer Motion for fluid transitions
+- **Interactive Sidebar**: Easy access to settings and token management
+- **About Modal**: Built-in documentation and help guide
 
 ---
 
