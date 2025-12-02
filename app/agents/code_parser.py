@@ -3,6 +3,7 @@ import re
 import logging
 from typing import List, Dict, Any
 from app.models.schemas import AgentState
+from app.utils.language_detector import language_detector
 
 logger = logging.getLogger(__name__)
 
@@ -11,14 +12,17 @@ class CodeParserAgent:
     """
     Parse unified Git diff to structured format:
     - file_path
+    - language (detected from extension)
     - hunks[]
       - {old_start, new_start, changes[]}
     """
     
     HUNK_HEADER_REGEX = re.compile(r'@@ -(\d+),?\d* \+(\d+),?\d* @@')
 
-    def parse_diff(self, state: AgentState) -> AgentState:
+    async def parse_diff(self, state: AgentState) -> AgentState:
         diff_content = state.manual_diff or state.diff_content
+        
+        logger.info(f"CodeParser received diff content length: {len(diff_content) if diff_content else 0}")
 
         if not diff_content:
             return state.with_error("No diff content available to parse")
@@ -26,6 +30,13 @@ class CodeParserAgent:
         try:
             state.parsed_changes = self._extract_changes(diff_content)
             logger.info(f"Parsed changes for {len(state.parsed_changes)} files")
+            
+            # Detect primary language from all files
+            if state.parsed_changes and not state.language:
+                file_paths = [change.get('file_path', '') for change in state.parsed_changes]
+                state.language = language_detector.detect_primary_language(file_paths)
+                logger.info(f"Detected primary language: {state.language}")
+            
             return state
         
         except Exception as exc:
@@ -46,8 +57,10 @@ class CodeParserAgent:
         for line in lines:
             # File header (start)
             if line.startswith('--- a/'):
+                file_path = line[6:]
                 current_file = {
-                    "file_path": line[6:],
+                    "file_path": file_path,
+                    "language": language_detector.detect_language(file_path),
                     "hunks": []
                 }
                 continue
@@ -110,6 +123,6 @@ class CodeParserAgent:
 code_parser = CodeParserAgent()
 
 
-def parse_code_changes(state: AgentState) -> AgentState:
+async def parse_code_changes(state: AgentState) -> AgentState:
     """LangGraph-compatible wrapper"""
-    return code_parser.parse_diff(state)
+    return await code_parser.parse_diff(state)

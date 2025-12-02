@@ -1,5 +1,5 @@
 """Pydantic models for request/response schemas."""
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
@@ -34,7 +34,12 @@ class ReviewComment(BaseModel):
 
 class GitHubPRRequest(BaseModel):
     """Request to review a GitHub PR."""
-    pr_url: HttpUrl = Field(..., description="GitHub PR URL (e.g., https://github.com/owner/repo/pull/123)")
+    pr_url: str = Field(..., description="GitHub PR URL or any input (e.g., https://github.com/owner/repo/pull/123)")
+    github_token: Optional[str] = Field(
+        None, 
+        description="Optional GitHub token for private repositories. Token is used in-memory only and never stored or logged."
+    )
+
 
 
 class ManualDiffRequest(BaseModel):
@@ -60,6 +65,7 @@ class AgentState(BaseModel):
     manual_diff: Optional[str] = None
     language: Optional[str] = "python"
     context: Optional[str] = None
+    github_token: Optional[str] = None  # Optional token for private repos (in-memory only)
     
     # Intermediate data
     pr_data: Optional[Dict[str, Any]] = None
@@ -78,3 +84,8 @@ class AgentState(BaseModel):
     
     class Config:
         arbitrary_types_allowed = True
+
+    def with_error(self, error_msg: str) -> "AgentState":
+        """Helper to set error state."""
+        self.error = error_msg
+        return self

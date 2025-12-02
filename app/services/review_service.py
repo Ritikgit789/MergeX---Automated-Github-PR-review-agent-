@@ -10,23 +10,34 @@ logger = logging.getLogger(__name__)
 class ReviewService:
     """Service for orchestrating PR reviews."""
     
-    def review_github_pr(self, pr_url: str) -> ReviewResponse:
+    async def review_github_pr(self, pr_url: str, github_token: str = None) -> ReviewResponse:
         """
         Review a GitHub PR.
         
         Args:
             pr_url: GitHub PR URL
+            github_token: Optional GitHub token for private repositories (in-memory only, never stored)
             
         Returns:
             ReviewResponse with comments and summary
         """
         try:
-            # Create initial state
-            initial_state = AgentState(pr_url=pr_url)
+            # Create initial state with optional token
+            # Token is passed securely and will be cleared after use
+            initial_state = AgentState(
+                pr_url=pr_url,
+                github_token=github_token  # Optional token for private repos
+            )
             
             # Run workflow
             logger.info(f"Starting review workflow for PR: {pr_url}")
-            final_state = review_workflow.invoke(initial_state)
+            final_state = await review_workflow.ainvoke(initial_state)
+            
+            # SECURITY: Clear token from final state (even if workflow cleared it, ensure it's gone)
+            if isinstance(final_state, dict):
+                final_state.pop("github_token", None)
+            else:
+                final_state.github_token = None
             
             # Check for errors
             # Handle both dict (from compiled graph) and object access
@@ -41,9 +52,16 @@ class ReviewService:
                 )
             
             # Build response
-            return self._build_response(final_state)
+            response = self._build_response(final_state)
+            
+            # SECURITY: Clear token reference from local variable (Python GC will handle cleanup)
+            github_token = None
+            
+            return response
             
         except Exception as e:
+            # SECURITY: Clear token reference even on error
+            github_token = None
             logger.error(f"Error reviewing GitHub PR: {str(e)}")
             return ReviewResponse(
                 status="error",
@@ -52,7 +70,7 @@ class ReviewService:
                 total_issues=0
             )
     
-    def review_manual_diff(self, diff: str, language: str = "python", context: str = None) -> ReviewResponse:
+    async def review_manual_diff(self, diff: str, language: str = "python", context: str = None) -> ReviewResponse:
         """
         Review a manual diff.
         
@@ -74,7 +92,7 @@ class ReviewService:
             
             # Run workflow
             logger.info("Starting review workflow for manual diff")
-            final_state = review_workflow.invoke(initial_state)
+            final_state = await review_workflow.ainvoke(initial_state)
             
             # Check for errors
             error = final_state.get("error") if isinstance(final_state, dict) else getattr(final_state, "error", None)

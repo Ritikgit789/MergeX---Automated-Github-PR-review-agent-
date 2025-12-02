@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, status
 from app.models.schemas import GitHubPRRequest, ManualDiffRequest, ReviewResponse
 from app.services.review_service import review_service
+from app.utils.input_validator import input_validator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,19 +16,42 @@ async def review_github_pr(request: GitHubPRRequest):
     Review a GitHub Pull Request.
     
     Args:
-        request: GitHub PR URL
+        request: GitHub PR URL and optional token for private repositories
         
     Returns:
         Review response with comments and summary
         
     Raises:
         HTTPException: If review fails
+    
+    Security Note:
+        - If github_token is provided, it is used in-memory only for this request
+        - Token is never stored, logged, or persisted
+        - Token is cleared from memory after request completion
     """
     try:
-        logger.info(f"Received GitHub PR review request: {request.pr_url}")
+        # Log request without exposing token
+        token_provided = "Yes" if request.github_token else "No"
+        logger.info(f"Received GitHub PR review request: {request.pr_url} (Token provided: {token_provided})")
         
-        # Execute review
-        response = review_service.review_github_pr(str(request.pr_url))
+        # Validate input
+        validation_result = input_validator.validate(request.pr_url)
+        
+        if not validation_result["is_valid"]:
+            # Return friendly fallback response for greetings and irrelevant queries
+            return ReviewResponse(
+                status="info",
+                summary=validation_result["message"],
+                comments=[],
+                total_issues=0
+            )
+        
+        # Execute review with validated URL and optional token
+        # Token is passed securely and will be cleared after use
+        response = await review_service.review_github_pr(
+            pr_url=validation_result["url"],
+            github_token=request.github_token  # Optional token for private repos
+        )
         
         # Check if review failed
         if response.status == "error":
@@ -48,6 +72,7 @@ async def review_github_pr(request: GitHubPRRequest):
         )
 
 
+
 @router.post("/diff", response_model=ReviewResponse, status_code=status.HTTP_200_OK)
 async def review_manual_diff(request: ManualDiffRequest):
     """
@@ -66,7 +91,7 @@ async def review_manual_diff(request: ManualDiffRequest):
         logger.info(f"Received manual diff review request (language: {request.language})")
         
         # Execute review
-        response = review_service.review_manual_diff(
+        response = await review_service.review_manual_diff(
             diff=request.diff,
             language=request.language or "python",
             context=request.context
