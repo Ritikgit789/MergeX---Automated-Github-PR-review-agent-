@@ -1,12 +1,10 @@
 """Readability reviewer agent - checks code readability and style."""
-from typing import List
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
+from typing import Dict
 from app.config.settings import settings
 from app.models.schemas import AgentState, ReviewComment, ReviewSeverity, ReviewCategory
+from app.services.llm_gateway import get_llm_gateway
 import logging
 import json
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -15,61 +13,43 @@ class ReadabilityReviewerAgent:
     """Agent responsible for reviewing code readability and style."""
     
     def __init__(self):
-        """Initialize Gemini LLM."""
-        self._llm = None
+        """Initialize the readability reviewer."""
+        self.gateway = get_llm_gateway()
         
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an expert code reviewer specializing in code readability and maintainability.
-Review the provided code changes and identify:
-- Poor naming conventions (unclear variable/function names)
-- Missing or inadequate documentation/comments
-- Overly complex functions (too long, too many responsibilities)
-- Code duplication
-- Inconsistent formatting or style
-- Magic numbers or hardcoded values
-- Unclear control flow
-- Missing type hints (for typed languages)
-- Poor error messages
+        # Ultra-strict: ONLY obvious style issues
+        self.system_prompt = """Expert readability reviewer. ONLY REPORT OBVIOUS ISSUES:
 
-Return your findings as a JSON array of objects with this structure:
+REPORT ONLY IF YOU SEE:
+- Single letter variables (outside loops): x = get_user_data()
+- Magic numbers: sleep(86400) instead of SECONDS_PER_DAY
+- Extreme duplication (exact same block 3+ times)
+
+NEVER REPORT:
+- Good variable names (result, data, payload, config are FINE)
+- "Could be more descriptive" (subjective)
+- "Add comments" (generic)
+- "Function too long" (you don't see full function)
+
+MANDATORY:
+- Quote the problematic code
+- Be 100% certain it's bad
+
+Return JSON (EMPTY if code is reasonable):
 [
-  {{
+  {
     "file_path": "path/to/file",
     "line_number": 42,
-    "severity": "warning|info",
-    "message": "Clear description of the readability issue",
-    "suggestion": "How to improve it"
-  }}
+    "severity": "info",
+    "message": "Style issue: [quote code]",
+    "suggestion": "Improvement"
+  }
 ]
 
-If no issues found, return an empty array: []
-Focus on maintainability and developer experience."""),
-            ("human", """Review these code changes for readability and style (may include multiple files):
-
-{changes}
-
-Primary Language: {language}
-Context: {context}
-
-IMPORTANT: For each issue, make sure to include the correct file_path from the changes above.""")
-        ])
-
-    @property
-    def llm(self):
-        """Lazy initialization of LLM."""
-        if not self._llm:
-            self._llm = ChatGoogleGenerativeAI(
-                model=settings.gemini_model,
-                temperature=settings.gemini_temperature,
-                max_output_tokens=settings.gemini_max_tokens,
-                google_api_key=settings.google_api_key,
-                response_mime_type="application/json"
-            )
-        return self._llm
+When in doubt, return []."""
     
     async def review_readability(self, state: AgentState) -> dict:
         """
-        Review code for readability issues - batches all files in a single LLM call.
+        Review code for readability issues.
         
         Args:
             state: Current agent state with parsed_changes
@@ -82,14 +62,13 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
             return {"readability_comments": []}
         
         try:
-            # Build batched changes text for all files
+            # Build batched changes text
             all_files_text = []
             
             for idx, file_change in enumerate(state.parsed_changes):
                 file_path = file_change.get('file_path', 'unknown')
                 file_language = file_change.get('language', state.language or 'unknown')
                 
-                # Build changes text for this file
                 changes_text = []
                 for hunk in file_change.get('hunks', []):
                     for change in hunk.get('changes', []):
@@ -99,7 +78,6 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
                             changes_text.append(f"- {change['content']}")
                 
                 if changes_text:
-                    # Limit each file to 100 lines to avoid token limits
                     file_changes_str = "\n".join(changes_text[:100])
                     file_section = f"\n\n=== File {idx + 1}: {file_path} (Language: {file_language}) ===\n{file_changes_str}"
                     all_files_text.append(file_section)
@@ -107,45 +85,51 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
             if not all_files_text:
                 return {"readability_comments": []}
             
-            # Combine all files into one prompt
             combined_changes = "\n".join(all_files_text)
             primary_language = state.language or "unknown"
             
-            # Call LLM once for all files with timeout
-            try:
-                chain = self.prompt | self.llm
-                response = await asyncio.wait_for(
-                    chain.ainvoke({
-                        "file_path": "Multiple files (see changes below)",
-                        "changes": combined_changes,
-                        "language": primary_language,
-                        "context": state.context or "No additional context"
-                    }),
-                    timeout=settings.llm_api_timeout
-                )
-            except asyncio.TimeoutError:
-                logger.error(f"LLM call timed out after {settings.llm_api_timeout} seconds in readability review")
-                return {"readability_comments": []}
-            except Exception as e:
-                logger.error(f"LLM call failed in readability review: {str(e)}")
+            user_prompt = f"""Review for readability and style (multiple files):
+
+{combined_changes}
+
+Primary Language: {primary_language}
+Context: {state.context or 'No additional context'}
+
+IMPORTANT: Include correct file_path for each issue."""
+            
+            # Call LLM via gateway
+            result = await self.gateway.call_llm(
+                system_prompt=self.system_prompt,
+                user_prompt=user_prompt,
+                agent_name="readability_reviewer"
+            )
+            
+            if not result["success"]:
+                logger.error(f"Readability review LLM call failed: {result['error']}")
                 return {"readability_comments": []}
             
-            # Parse JSON response
+            # Parse response
             comments = []
             try:
-                content = response.content.strip()
+                content = result["content"].strip()
                 if content.startswith('```'):
                     content = content.split('```')[1]
                     if content.startswith('json'):
                         content = content[4:]
                 content = content.strip()
                 
-                issues = json.loads(content)
+                data = json.loads(content)
+                # Handle both list and dict responses
+                if isinstance(data, list):
+                    issues = data
+                elif isinstance(data, dict):
+                    issues = data.get('issues', data.get('findings', []))
+                else:
+                    issues = []
                 
                 for issue in issues:
-                    issue_file_path = issue.get('file_path', 'unknown')
                     comments.append(ReviewComment(
-                        file_path=issue_file_path,
+                        file_path=issue.get('file_path', 'unknown'),
                         line_number=issue.get('line_number'),
                         severity=ReviewSeverity(issue.get('severity', 'info')),
                         category=ReviewCategory.READABILITY,
@@ -154,7 +138,9 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
                         source_agent="readability_reviewer"
                     ))
             except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse LLM response: {e}. Response: {response.content[:200]}")
+                logger.warning(f"Failed to parse readability review response: {e}")
+            except Exception as e:
+                logger.error(f"Error processing readability review response: {e}")
             
             logger.info(f"Readability review found {len(comments)} issues")
             return {"readability_comments": comments}

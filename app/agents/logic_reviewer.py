@@ -1,12 +1,10 @@
 """Logic reviewer agent - identifies logical errors and edge cases."""
-from typing import List
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
+from typing import Dict
 from app.config.settings import settings
 from app.models.schemas import AgentState, ReviewComment, ReviewSeverity, ReviewCategory
+from app.services.llm_gateway import get_llm_gateway
 import logging
 import json
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -15,57 +13,42 @@ class LogicReviewerAgent:
     """Agent responsible for reviewing code logic and correctness."""
     
     def __init__(self):
-        """Initialize Gemini LLM."""
-        self._llm = None
+        """Initialize the logic reviewer."""
+        self.gateway = get_llm_gateway()
         
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are an expert code reviewer specializing in logic analysis.
-Review the provided code changes and identify:
-- Logical errors and bugs
-- Edge cases not handled
-- Null pointer/undefined reference issues
-- Incorrect algorithms or business logic
-- Off-by-one errors
-- Off-by-one errors
-- Race conditions or concurrency issues
+        # Ultra-strict: ONLY observable issues
+        self.system_prompt = """Expert code logic reviewer. ULTRA-STRICT RULES:
 
-Also consider the logical impact of deleted code (e.g., removing critical steps, tests, or validation logic).
+ONLY REPORT THESE:
+1. Syntax errors you can SEE (missing comma, unclosed bracket)
+2. Direct contradictions (if x > 5 and x < 3)
+3. Obvious typos in visible function/variable names
+4. Division by zero with literal 0
 
-Return your findings as a JSON array of objects with this structure:
+NEVER REPORT:
+- "Missing X" (you can't know what's missing)
+- "Function not defined" (you don't see the whole file)
+- "Edge cases" (speculation)
+- "Should add" / "Needs" (speculation)
+- Line number claims without quoting the actual line
+
+MANDATORY:
+- Quote the EXACT problematic code
+- Be 100% certain
+- If uncertain, DON'T report it
+
+Return JSON (EMPTY if nothing 100% certain):
 [
-  {{
+  {
     "file_path": "path/to/file",
     "line_number": 42,
-    "severity": "error|warning|info",
-    "message": "Clear description of the issue",
-    "suggestion": "How to fix it"
-  }}
+    "severity": "error",
+    "message": "EXACT issue: [quote the bad code]",
+    "suggestion": "Exact fix"
+  }
 ]
 
-If no issues found, return an empty array: []
-Be concise and actionable. Focus only on logic issues."""),
-            ("human", """Review these code changes (may include multiple files):
-
-{changes}
-
-Primary Language: {language}
-Context: {context}
-
-IMPORTANT: For each issue, make sure to include the correct file_path from the changes above.""")
-        ])
-
-    @property
-    def llm(self):
-        """Lazy initialization of LLM."""
-        if not self._llm:
-            self._llm = ChatGoogleGenerativeAI(
-                model=settings.gemini_model,
-                temperature=settings.gemini_temperature,
-                max_output_tokens=settings.gemini_max_tokens,
-                google_api_key=settings.google_api_key,
-                response_mime_type="application/json"
-            )
-        return self._llm
+When in doubt, return []. Better to miss issues than hallucinate."""
     
     async def review_logic(self, state: AgentState) -> dict:
         """
@@ -84,7 +67,6 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
         try:
             # Build batched changes text for all files
             all_files_text = []
-            file_paths_map = {}  # Track which file each section belongs to
             
             for idx, file_change in enumerate(state.parsed_changes):
                 file_path = file_change.get('file_path', 'unknown')
@@ -100,14 +82,10 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
                             changes_text.append(f"- {change['content']}")
                 
                 if changes_text:
-                    # Limit each file to 100 lines to avoid token limits
+                    # Limit to 100 lines per file to avoid token limits
                     file_changes_str = "\n".join(changes_text[:100])
                     file_section = f"\n\n=== File {idx + 1}: {file_path} (Language: {file_language}) ===\n{file_changes_str}"
                     all_files_text.append(file_section)
-                    file_paths_map[idx] = {
-                        "file_path": file_path,
-                        "language": file_language
-                    }
             
             if not all_files_text:
                 return {"logic_comments": []}
@@ -116,29 +94,31 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
             combined_changes = "\n".join(all_files_text)
             primary_language = state.language or "unknown"
             
-            # Call LLM once for all files with timeout
-            try:
-                chain = self.prompt | self.llm
-                response = await asyncio.wait_for(
-                    chain.ainvoke({
-                        "file_path": "Multiple files (see changes below)",
-                        "changes": combined_changes,
-                        "language": primary_language,
-                        "context": state.context or "No additional context"
-                    }),
-                    timeout=settings.llm_api_timeout
-                )
-            except asyncio.TimeoutError:
-                logger.error(f"LLM call timed out after {settings.llm_api_timeout} seconds in logic review")
-                return {"logic_comments": []}
-            except Exception as e:
-                logger.error(f"LLM call failed in logic review: {str(e)}")
+            user_prompt = f"""Review these code changes (may include multiple files):
+
+{combined_changes}
+
+Primary Language: {primary_language}
+Context: {state.context or 'No additional context'}
+
+IMPORTANT: For each issue, include the correct file_path from changes above."""
+            
+            # Call LLM via gateway
+            result = await self.gateway.call_llm(
+                system_prompt=self.system_prompt,
+                user_prompt=user_prompt,
+                agent_name="logic_reviewer"
+            )
+            
+            if not result["success"]:
+                logger.error(f"Logic review LLM call failed: {result['error']}")
                 return {"logic_comments": []}
             
             # Parse JSON response
             comments = []
             try:
-                content = response.content.strip()
+                content = result["content"].strip()
+                
                 # Remove markdown code blocks if present
                 if content.startswith('```'):
                     content = content.split('```')[1]
@@ -146,13 +126,20 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
                         content = content[4:]
                 content = content.strip()
                 
-                issues = json.loads(content)
+                content = content.strip()
+                
+                data = json.loads(content)
+                # Handle both list and dict responses
+                if isinstance(data, list):
+                    issues = data
+                elif isinstance(data, dict):
+                    issues = data.get('issues', data.get('findings', []))
+                else:
+                    issues = []
                 
                 for issue in issues:
-                    # Use file_path from issue if provided, otherwise try to match
-                    issue_file_path = issue.get('file_path', 'unknown')
                     comments.append(ReviewComment(
-                        file_path=issue_file_path,
+                        file_path=issue.get('file_path', 'unknown'),
                         line_number=issue.get('line_number'),
                         severity=ReviewSeverity(issue.get('severity', 'warning')),
                         category=ReviewCategory.LOGIC,
@@ -161,7 +148,9 @@ IMPORTANT: For each issue, make sure to include the correct file_path from the c
                         source_agent="logic_reviewer"
                     ))
             except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse LLM response: {e}. Response: {response.content[:200]}")
+                logger.warning(f"Failed to parse logic review response: {e}")
+            except Exception as e:
+                logger.error(f"Error processing logic review response: {e}")
             
             logger.info(f"Logic review found {len(comments)} issues")
             return {"logic_comments": comments}

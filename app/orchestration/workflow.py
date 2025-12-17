@@ -52,12 +52,11 @@ def aggregate_results(state: Any) -> dict:
         all_comments.extend(getattr(state, "performance_comments", []))
         all_comments.extend(getattr(state, "readability_comments", []))
     
-    # Deduplicate based on file_path and message (ignoring line number to avoid near-duplicates)
+    # Basic deduplication before quality control
     seen = set()
     unique_comments = []
     
     for comment in all_comments:
-        # Normalize message to avoid slight variations
         msg_key = comment.message.strip().lower()
         key = (comment.file_path, msg_key)
         
@@ -65,15 +64,54 @@ def aggregate_results(state: Any) -> dict:
             seen.add(key)
             unique_comments.append(comment)
     
-    # Sort by severity (critical > error > warning > info) and then by file path
-    severity_order = {"critical": 0, "error": 1, "warning": 2, "info": 3}
-    unique_comments.sort(
-        key=lambda c: (severity_order.get(c.severity.value, 4), c.file_path, c.line_number or 0)
-    )
+    logger.info(f"Aggregated {len(unique_comments)} unique comments from {len(all_comments)} total (before quality control)")
     
-    logger.info(f"Aggregated {len(unique_comments)} unique comments from {len(all_comments)} total")
+    return {"raw_comments": unique_comments}
+
+
+async def quality_control_validation(state: Any) -> dict:
+    """Validate and sanitize all findings through quality control gateway."""
+    from app.services.quality_control import quality_control_gateway
     
-    return {"all_comments": unique_comments}
+    # Get raw comments and diff context
+    if isinstance(state, dict):
+        raw_comments = state.get("raw_comments", [])
+        diff_content = state.get("diff_content", "")
+    else:
+        raw_comments = getattr(state, "raw_comments", [])
+        diff_content = getattr(state, "diff_content", "")
+    
+    if not raw_comments:
+        logger.info("No comments to validate")
+        return {"all_comments": []}
+    
+    try:
+        # Run quality control validation
+        validation_result = await quality_control_gateway.validate_findings(
+            comments=raw_comments,
+            diff_context=diff_content or ""
+        )
+        
+        validated_comments = validation_result["validated_comments"]
+        dropped_count = validation_result["dropped_count"]
+        
+        # Sort by severity
+        severity_order = {"critical": 0, "error": 1, "warning": 2, "info": 3}
+        validated_comments.sort(
+            key=lambda c: (severity_order.get(c.severity.value, 4), c.file_path, c.line_number or 0)
+        )
+        
+        logger.info(
+            f"Quality control complete: {len(raw_comments)} → {len(validated_comments)} "
+            f"(dropped {dropped_count} hallucinations/noise)"
+        )
+        
+        return {"all_comments": validated_comments}
+        
+    except Exception as e:
+        logger.error(f"Quality control failed, using raw comments: {str(e)}")
+        # Fallback: use raw comments with basic filtering
+        return {"all_comments": [c for c in raw_comments if c.file_path != "unknown"]}
 
 
 def create_review_workflow() -> StateGraph:
@@ -85,6 +123,8 @@ def create_review_workflow() -> StateGraph:
     2. Parse code changes
     3. Run all reviewers in parallel
     4. Aggregate results
+    5. Quality control validation (NEW - prevents hallucinations)
+    6. Return validated findings
     """
     # Create state graph
     workflow = StateGraph(AgentState)
@@ -97,6 +137,7 @@ def create_review_workflow() -> StateGraph:
     workflow.add_node("review_performance", review_performance)
     workflow.add_node("review_readability", review_readability)
     workflow.add_node("aggregate", aggregate_results)
+    workflow.add_node("quality_control", quality_control_validation)  # NEW
     
     # Set entry point with conditional routing
     workflow.set_conditional_entry_point(
@@ -117,20 +158,22 @@ def create_review_workflow() -> StateGraph:
         }
     )
     
-    # Parse code -> all reviewers (parallel execution)
+    # Parse code -> sequential reviewers (reduces quota usage by 75%)
     workflow.add_edge("parse_code", "review_logic")
-    workflow.add_edge("parse_code", "review_security")
-    workflow.add_edge("parse_code", "review_performance")
-    workflow.add_edge("parse_code", "review_readability")
+    workflow.add_edge("review_logic", "review_security")
+    workflow.add_edge("review_security", "review_performance")
+    workflow.add_edge("review_performance", "review_readability")
     
-    # All reviewers -> aggregate
-    workflow.add_edge("review_logic", "aggregate")
-    workflow.add_edge("review_security", "aggregate")
-    workflow.add_edge("review_performance", "aggregate")
+    # Last reviewer -> aggregate
     workflow.add_edge("review_readability", "aggregate")
     
-    # Aggregate -> end
-    workflow.add_edge("aggregate", END)
+    # Aggregate -> quality control validation (CRITICAL STEP)
+    workflow.add_edge("aggregate", "quality_control")
+    
+    # Quality control -> end
+    workflow.add_edge("quality_control", END)
+    
+    return workflow.compile()
     
     return workflow.compile()
 

@@ -118,7 +118,10 @@ class ReviewService:
             )
     
     def _build_response(self, state: Any) -> ReviewResponse:
-        """Build review response from final state."""
+        """Build review response from final state using smart formatter."""
+        from app.services.response_formatter import response_formatter
+        from app.services.llm_gateway import get_llm_gateway
+        
         # Handle both dict and object access
         if isinstance(state, dict):
             comments = state.get("all_comments", [])
@@ -127,54 +130,29 @@ class ReviewService:
             comments = getattr(state, "all_comments", [])
             pr_data = getattr(state, "pr_data", None)
         
-        # Generate summary
-        total_issues = len(comments)
+        # Get LLM performance metrics
+        gateway = get_llm_gateway()
+        metrics = gateway.get_metrics()
         
-        if total_issues == 0:
-            summary = "✅ No issues found. Code looks good!"
-        else:
-            # Count by severity
-            # Handle comments as objects (Pydantic models) even if state is dict
-            critical = sum(1 for c in comments if c.severity.value == "critical")
-            errors = sum(1 for c in comments if c.severity.value == "error")
-            warnings = sum(1 for c in comments if c.severity.value == "warning")
-            info = sum(1 for c in comments if c.severity.value == "info")
-            
-            # Count by category
-            logic = sum(1 for c in comments if c.category.value == "logic")
-            security = sum(1 for c in comments if c.category.value == "security")
-            performance = sum(1 for c in comments if c.category.value == "performance")
-            readability = sum(1 for c in comments if c.category.value == "readability")
-            
-            summary_parts = [f"Found {total_issues} issue(s):"]
-            
-            if critical > 0:
-                summary_parts.append(f" {critical} critical")
-            if errors > 0:
-                summary_parts.append(f" {errors} error(s)")
-            if warnings > 0:
-                summary_parts.append(f" {warnings} warning(s)")
-            if info > 0:
-                summary_parts.append(f" {info} info")
-            
-            summary_parts.append("\nCategories:")
-            if logic > 0:
-                summary_parts.append(f"  • Logic: {logic}")
-            if security > 0:
-                summary_parts.append(f"  • Security: {security}")
-            if performance > 0:
-                summary_parts.append(f"  • Performance: {performance}")
-            if readability > 0:
-                summary_parts.append(f"  • Readability: {readability}")
-            
-            summary = " ".join(summary_parts)
+        logger.info(
+            f"Review completed: {len(comments)} issues | "
+            f"LLM calls: {metrics['total_calls']} | "
+            f"Total time: {metrics['total_time']}s | "
+            f"Avg per call: {metrics['avg_time_per_call']}s"
+        )
+        
+        # Use smart formatter
+        formatted = response_formatter.format_review(comments, pr_data)
+        
+        # Combine formatted sections
+        full_summary = f"{formatted['summary']}\n\n{formatted['issues']}\n\n{formatted['suggestions']}"
         
         return ReviewResponse(
             status="success",
             pr_info=pr_data,
             comments=comments,
-            summary=summary,
-            total_issues=total_issues
+            summary=full_summary,
+            total_issues=len(comments)
         )
 
 
