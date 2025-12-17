@@ -6,7 +6,10 @@ pydantic-settings
 # LangChain and LangGraph
 langgraph
 langchain
-langchain-google-genai
+
+# LLM Providers
+groq  # Primary: Groq for fast inference
+langchain-google-genai  # Optional: Legacy Gemini support
 
 # GitHub Integration
 PyGithub

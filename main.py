@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Gemini Model: {settings.gemini_model}")
+    logger.info(f"Model: {settings.groq_model}")
     
     yield
     
