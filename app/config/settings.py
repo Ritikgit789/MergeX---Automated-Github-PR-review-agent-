@@ -24,14 +24,23 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     
-    # Gemini Model Configuration
+    # Gemini Model Configuration (legacy, optional fallback)
     gemini_model: str = "gemini-2.0-flash"
     gemini_temperature: float = 0.3
     gemini_max_tokens: int = 2048
     
+    # Groq Model Configuration (primary)
+    groq_api_key: Optional[str] = None
+    groq_model: str = "llama-3.1-8b-instant"
+    groq_temperature: float = 0.3
+    groq_max_tokens: int = 1800
+    groq_timeout: int = 5  # Quality-focused timeout
+    groq_retry_timeout: int = 2  # Faster retry on failure
+    
     # Timeout Configuration (in seconds)
     github_api_timeout: int = 30
-    llm_api_timeout: int = 60
+    llm_api_timeout: int = 60  # Kept for backward compatibility
+
     
     class Config:
         env_file = ".env"

@@ -78,8 +78,11 @@ class AgentState(BaseModel):
     performance_comments: List[ReviewComment] = Field(default_factory=list)
     readability_comments: List[ReviewComment] = Field(default_factory=list)
     
+    # Quality control pipeline
+    raw_comments: List[ReviewComment] = Field(default_factory=list)  # Before validation
+    
     # Final output
-    all_comments: List[ReviewComment] = Field(default_factory=list)
+    all_comments: List[ReviewComment] = Field(default_factory=list)  # After validation
     error: Optional[str] = None
     
     class Config:
