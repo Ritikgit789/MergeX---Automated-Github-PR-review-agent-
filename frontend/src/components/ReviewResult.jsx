@@ -97,7 +97,6 @@ export function ReviewResult({ data }) {
                         </div>
                     </div>
                 </div>
-                <p className="text-text/80 leading-relaxed whitespace-pre-wrap max-w-2xl mx-auto">{summary}</p>
             </motion.div>
 
             {/* Comments List */}
