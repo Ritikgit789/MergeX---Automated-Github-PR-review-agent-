@@ -119,7 +119,7 @@ MergeX/
 - **FastAPI** - Modern, fast web framework for building APIs
 - **LangGraph** - Multi-agent workflow orchestration
 - **LangChain** - LLM application framework
-- **Google Gemini** - AI model for code analysis
+- **Groq (Llama 3.1 8b instant)** - AI model for code analysis
 - **PyGithub** - GitHub API integration
 - **Pydantic** - Data validation and settings management
 - **Uvicorn** - ASGI server
@@ -144,7 +144,7 @@ MergeX/
 
 - **Python 3.9+**
 - **Node.js 18+** and **npm**
-- **Google API Key** (for Gemini)
+- **Groq API Key** 
 - **GitHub Token** (optional, for fetching PRs)
 
 ---
