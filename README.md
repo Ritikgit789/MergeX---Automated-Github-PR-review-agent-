@@ -1,6 +1,6 @@
 # MergeX - Automated GitHub PR Review Agent
 
-> **AI-Powered Code Review Assistant** | Intelligent multi-agent system that analyzes GitHub Pull Requests and generates structured, actionable code review comments using Google Gemini and LangGraph orchestration.
+> **AI-Powered Code Review Assistant** | Intelligent multi-agent system that analyzes GitHub Pull Requests and generates structured, actionable code review comments using LLM and LangGraph orchestration.
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-00a393.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.2+-61dafb.svg)](https://react.dev)
