@@ -105,17 +105,19 @@ export function ReviewResult({ data }) {
                         {isInfoResponse ? (
                             <p className="text-base text-text leading-relaxed">{summary}</p>
                         ) : (
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-background/50 rounded-full border border-border/50">
-                                <span className="text-sm font-medium text-muted">
-                                    <span className="text-primary font-bold text-lg mr-1">
-                                        <Counter value={total_issues} />
+                            <>
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-background/50 rounded-full border border-border/50">
+                                    <span className="text-sm font-medium text-muted">
+                                        <span className="text-primary font-bold text-lg mr-1">
+                                            <Counter value={total_issues} />
+                                        </span>
+                                        Issues Found
                                     </span>
-                                    Issues Found
-                                </span>
-                            </div>
-                        )}
-                        {!isInfoResponse && summary && (
-                            <p className="text-sm text-muted">{summary}</p>
+                                </div>
+                                {summary && !summary.includes('###') && (
+                                    <p className="text-sm text-muted max-w-xl">{summary}</p>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

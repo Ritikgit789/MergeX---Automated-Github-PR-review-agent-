@@ -198,6 +198,46 @@ While no critical issues were found, consider:
         
         return impact_map.get(category, {}).get(severity, "Impacts code quality and maintainability")
 
+    @staticmethod
+    def format_brief_summary(
+        comments: List[ReviewComment],
+        pr_info: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """One-line plain-text summary for API/UI (details live in comments array)."""
+        total_issues = len(comments)
+        if total_issues == 0:
+            return "No issues found — code meets quality standards."
+
+        severity_counts = {"critical": 0, "error": 0, "warning": 0, "info": 0}
+        for comment in comments:
+            severity_counts[comment.severity.value] = severity_counts.get(comment.severity.value, 0) + 1
+
+        if severity_counts["critical"] > 0:
+            risk_level = "HIGH RISK"
+        elif severity_counts["error"] > 0:
+            risk_level = "MEDIUM RISK"
+        elif severity_counts["warning"] > 0:
+            risk_level = "LOW RISK"
+        else:
+            risk_level = "MINIMAL RISK"
+
+        severity_parts = []
+        if severity_counts["critical"] > 0:
+            severity_parts.append(f"{severity_counts['critical']} critical")
+        if severity_counts["error"] > 0:
+            severity_parts.append(f"{severity_counts['error']} error")
+        if severity_counts["warning"] > 0:
+            severity_parts.append(f"{severity_counts['warning']} warning")
+        if severity_counts["info"] > 0:
+            severity_parts.append(f"{severity_counts['info']} info")
+
+        line = f"Found {total_issues} issue(s) · {risk_level}"
+        if severity_parts:
+            line += f" · {', '.join(severity_parts)}"
+        if pr_info and pr_info.get("title"):
+            line += f" · {pr_info['title']}"
+        return line
+
 
 # Create singleton instance
 response_formatter = ResponseFormatter()

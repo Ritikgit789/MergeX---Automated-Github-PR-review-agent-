@@ -141,17 +141,14 @@ class ReviewService:
             f"Avg per call: {metrics['avg_time_per_call']}s"
         )
         
-        # Use smart formatter
-        formatted = response_formatter.format_review(comments, pr_data)
-        
-        # Combine formatted sections
-        full_summary = f"{formatted['summary']}\n\n{formatted['issues']}\n\n{formatted['suggestions']}"
+        # Brief plain-text summary for UI; full issue details are in comments[]
+        summary = response_formatter.format_brief_summary(comments, pr_data)
         
         return ReviewResponse(
             status="success",
             pr_info=pr_data,
             comments=comments,
-            summary=full_summary,
+            summary=summary,
             total_issues=len(comments)
         )
 
