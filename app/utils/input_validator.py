@@ -31,6 +31,12 @@ class InputValidator:
         r'^sup$',
         r'^what\'?s\s+up$',
     ]
+
+    GREETING_TOKENS = frozenset({
+        'hi', 'hello', 'hey', 'greetings', 'greeting', 'howdy', 'sup',
+        'there', 'mergex', 'merge', 'good', 'morning', 'afternoon',
+        'evening', 'day', 'yo', 'hiya',
+    })
     
     # GitHub PR URL pattern
     GITHUB_PR_PATTERN = r'https?://github\.com/[\w\-\.]+/[\w\-\.]+/pull/\d+'
@@ -107,6 +113,14 @@ class InputValidator:
         for pattern in self.greeting_regex:
             if pattern.match(text_lower):
                 return True
+
+        # Flexible match: "Hi, hello MERGEX" and similar (greeting words only, no URL)
+        if 'github.com' in text_lower or '/pull/' in text_lower:
+            return False
+        normalized = re.sub(r'[^\w\s]', ' ', text_lower)
+        tokens = [t for t in normalized.split() if t]
+        if tokens and all(t in self.GREETING_TOKENS for t in tokens):
+            return True
         
         return False
     

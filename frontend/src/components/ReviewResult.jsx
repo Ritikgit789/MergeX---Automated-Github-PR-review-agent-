@@ -51,7 +51,8 @@ export function ReviewResult({ data }) {
     // Safety check: if data is null/undefined, don't render or render fallback
     if (!data) return null;
 
-    const { total_issues = 0, summary = '', comments = [] } = data;
+    const { status = 'success', total_issues = 0, summary = '', comments = [] } = data;
+    const isInfoResponse = status === 'info' && (!comments || comments.length === 0);
 
     const container = {
         hidden: { opacity: 0 },
@@ -78,23 +79,44 @@ export function ReviewResult({ data }) {
             {/* Summary Section */}
             <motion.div
                 variants={item}
-                className="glass-strong rounded-xl p-8 border border-primary/20 shadow-2xl shadow-primary/10 text-center"
+                className={clsx(
+                    "glass-strong rounded-xl p-8 shadow-2xl text-center",
+                    isInfoResponse
+                        ? "border border-blue-400/30 shadow-blue-500/10"
+                        : "border border-primary/20 shadow-primary/10"
+                )}
             >
-                <div className="flex flex-col items-center justify-center mb-6 gap-4">
-                    <div className="p-3 bg-primary/10 rounded-full">
-                        <CheckCircle className="w-8 h-8 text-primary" />
+                <div className="flex flex-col items-center justify-center gap-4">
+                    <div className={clsx(
+                        "p-3 rounded-full",
+                        isInfoResponse ? "bg-blue-400/10" : "bg-primary/10"
+                    )}>
+                        {isInfoResponse ? (
+                            <Info className="w-8 h-8 text-blue-400" />
+                        ) : (
+                            <CheckCircle className="w-8 h-8 text-primary" />
+                        )}
                     </div>
 
-                    <div className="space-y-2">
-                        <h3 className="text-2xl font-bold text-text">Review Complete</h3>
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-background/50 rounded-full border border-border/50">
-                            <span className="text-sm font-medium text-muted">
-                                <span className="text-primary font-bold text-lg mr-1">
-                                    <Counter value={total_issues} />
+                    <div className="space-y-3 max-w-2xl">
+                        <h3 className="text-2xl font-bold text-text">
+                            {isInfoResponse ? 'MergeX' : 'Review Complete'}
+                        </h3>
+                        {isInfoResponse ? (
+                            <p className="text-base text-text leading-relaxed">{summary}</p>
+                        ) : (
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-background/50 rounded-full border border-border/50">
+                                <span className="text-sm font-medium text-muted">
+                                    <span className="text-primary font-bold text-lg mr-1">
+                                        <Counter value={total_issues} />
+                                    </span>
+                                    Issues Found
                                 </span>
-                                Issues Found
-                            </span>
-                        </div>
+                            </div>
+                        )}
+                        {!isInfoResponse && summary && (
+                            <p className="text-sm text-muted">{summary}</p>
+                        )}
                     </div>
                 </div>
             </motion.div>
