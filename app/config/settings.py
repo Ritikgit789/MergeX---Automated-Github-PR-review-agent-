@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "PR Review Agent"
     app_version: str = "1.0.0"
-    log_level: str = "INFO"
+    log_level: str = "INFO"  # Use DEBUG, INFO, WARNING, or ERROR (uppercase)
     
     # API Configuration
     api_host: str = "0.0.0.0"

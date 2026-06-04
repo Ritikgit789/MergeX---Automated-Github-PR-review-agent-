@@ -7,9 +7,17 @@ from app.routers.health import router as health_router
 from app.routers.review import router as review_router
 import logging
 
-# Configure logging
+# Configure logging (LOG_LEVEL must be DEBUG/INFO/WARNING/ERROR, not "info" -> logging.info)
+def _resolve_log_level(name: str) -> int:
+    normalized = (name or "INFO").strip().upper()
+    level = getattr(logging, normalized, None)
+    if isinstance(level, int):
+        return level
+    return logging.INFO
+
+
 logging.basicConfig(
-    level=getattr(logging, settings.log_level),
+    level=_resolve_log_level(settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
