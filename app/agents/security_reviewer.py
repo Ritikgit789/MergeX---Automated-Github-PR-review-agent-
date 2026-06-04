@@ -3,6 +3,7 @@ from typing import Dict
 from app.config.settings import settings
 from app.models.schemas import AgentState, ReviewComment, ReviewSeverity, ReviewCategory
 from app.services.llm_gateway import get_llm_gateway
+from app.utils.comment_format import CLEAR_COMMENT_RULES, build_review_comment
 import logging
 import json
 
@@ -32,9 +33,10 @@ NEVER REPORT:
 - Generic "review for security"
 
 MANDATORY:
-- Quote the VULNERABLE line of code
-- Show why it's exploitable
 - Be 100% certain
+- Explain risk in plain English
+
+""" + CLEAR_COMMENT_RULES + """
 
 Return JSON (EMPTY if no PROVEN vulnerabilities):
 [
@@ -42,8 +44,8 @@ Return JSON (EMPTY if no PROVEN vulnerabilities):
     "file_path": "path/to/file",
     "line_number": 42,
     "severity": "critical",
-    "message": "Vulnerability: [quote vulnerable code]",
-    "suggestion": "Secure fix"
+    "message": "Problem: ... Impact: ... Code: ...",
+    "suggestion": "Fix: ..."
   }
 ]
 
@@ -135,15 +137,14 @@ IMPORTANT: Include correct file_path for each issue."""
                         logger.warning(f"Skipping malformed issue (not a dict): {issue}")
                         continue
                     
-                    comments.append(ReviewComment(
-                        file_path=issue.get('file_path', 'unknown'),
-                        line_number=issue.get('line_number'),
-                        severity=ReviewSeverity(issue.get('severity', 'warning')),
-                        category=ReviewCategory.SECURITY,
-                        message=issue.get('message', ''),
-                        suggestion=issue.get('suggestion'),
-                        source_agent="security_reviewer"
-                    ))
+                    comments.append(
+                        build_review_comment(
+                            issue,
+                            ReviewCategory.SECURITY,
+                            "warning",
+                            "security_reviewer",
+                        )
+                    )
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse security review response: {e}")
             except Exception as e:

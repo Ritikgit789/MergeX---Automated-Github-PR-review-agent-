@@ -161,14 +161,18 @@ export function ReviewResult({ data }) {
                                         )}
                                     </div>
 
-                                    <p className="text-text mb-3">{comment.message}</p>
+                                    <p className="text-text mb-3 leading-relaxed whitespace-pre-wrap">
+                                        {comment.message}
+                                    </p>
 
                                     {comment.suggestion && (
                                         <div className="bg-background rounded border border-border p-3 mt-3">
-                                            <p className="text-xs text-muted mb-1 font-medium uppercase tracking-wider">Suggestion</p>
-                                            <code className="text-sm font-mono text-green-400 block overflow-x-auto">
+                                            <p className="text-xs text-muted mb-1 font-medium uppercase tracking-wider">
+                                                How to fix
+                                            </p>
+                                            <p className="text-sm text-green-400 leading-relaxed">
                                                 {comment.suggestion}
-                                            </code>
+                                            </p>
                                         </div>
                                     )}
                                 </div>

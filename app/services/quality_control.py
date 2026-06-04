@@ -10,6 +10,7 @@ This ensures:
 from typing import List, Dict, Any
 from app.models.schemas import ReviewComment
 from app.services.llm_gateway import get_llm_gateway
+from app.utils.comment_format import VAGUE_SUGGESTIONS
 import logging
 import json
 
@@ -223,6 +224,14 @@ class QualityControlGateway:
                     dropped_reasons.append(f"Unverifiable unused import claim: {comment.message[:50]}")
                     continue
             
+            # RULE 4.5: Drop placeholder-only suggestions (LLM must explain the fix)
+            if comment.suggestion and comment.suggestion.lower().strip() in VAGUE_SUGGESTIONS:
+                dropped_reasons.append(f"Vague suggestion only: {comment.message[:50]}")
+                continue
+            if comment.suggestion and len(comment.suggestion.strip()) < 20:
+                dropped_reasons.append(f"Suggestion too short: {comment.suggestion[:40]}")
+                continue
+
             # RULE 5: Drop performance claims without observable patterns
             if comment.category.value == "performance":
                 vague_performance = [

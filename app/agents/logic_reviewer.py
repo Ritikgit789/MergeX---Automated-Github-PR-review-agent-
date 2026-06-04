@@ -3,6 +3,7 @@ from typing import Dict
 from app.config.settings import settings
 from app.models.schemas import AgentState, ReviewComment, ReviewSeverity, ReviewCategory
 from app.services.llm_gateway import get_llm_gateway
+from app.utils.comment_format import CLEAR_COMMENT_RULES, build_review_comment
 import logging
 import json
 
@@ -33,9 +34,10 @@ NEVER REPORT:
 - Line number claims without quoting the actual line
 
 MANDATORY:
-- Quote the EXACT problematic code
 - Be 100% certain
 - If uncertain, DON'T report it
+
+""" + CLEAR_COMMENT_RULES + """
 
 Return JSON (EMPTY if nothing 100% certain):
 [
@@ -43,8 +45,8 @@ Return JSON (EMPTY if nothing 100% certain):
     "file_path": "path/to/file",
     "line_number": 42,
     "severity": "error",
-    "message": "EXACT issue: [quote the bad code]",
-    "suggestion": "Exact fix"
+    "message": "Problem: ... Impact: ... Code: ...",
+    "suggestion": "Fix: ..."
   }
 ]
 
@@ -138,15 +140,14 @@ IMPORTANT: For each issue, include the correct file_path from changes above."""
                     issues = []
                 
                 for issue in issues:
-                    comments.append(ReviewComment(
-                        file_path=issue.get('file_path', 'unknown'),
-                        line_number=issue.get('line_number'),
-                        severity=ReviewSeverity(issue.get('severity', 'warning')),
-                        category=ReviewCategory.LOGIC,
-                        message=issue.get('message', ''),
-                        suggestion=issue.get('suggestion'),
-                        source_agent="logic_reviewer"
-                    ))
+                    comments.append(
+                        build_review_comment(
+                            issue,
+                            ReviewCategory.LOGIC,
+                            "warning",
+                            "logic_reviewer",
+                        )
+                    )
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse logic review response: {e}")
             except Exception as e:
